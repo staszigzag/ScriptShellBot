@@ -1,0 +1,13 @@
+telegramToken: <telegram token secret>
+
+
+scripts:
+    test: "echo test"
+messages:
+  response:
+    start: "Привет!"
+    hello: "Список доступных команд:\n%s"
+
+  error:
+    unknownCommand: "Я не знаю такой команды :("
+    default: "Произошла неизвестная ошибка."
