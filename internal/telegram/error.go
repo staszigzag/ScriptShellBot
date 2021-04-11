@@ -7,7 +7,8 @@ import (
 )
 
 var (
-	errUnknownCommand = errors.New("unknown command")
+	errUnknownCommand     = errors.New("unknown command")
+	errNotFoundSudoChatId = errors.New("not found sudo chatId")
 )
 
 func (b *Bot) handleError(chatID int64, err error) {
@@ -17,7 +18,7 @@ func (b *Bot) handleError(chatID int64, err error) {
 	case errUnknownCommand:
 		messageText = b.messages.Errors.UnknownCommand
 	default:
-		messageText = b.messages.Errors.Default
+		messageText = b.messages.Errors.Default + " " + err.Error()
 	}
 
 	msg := tgbotapi.NewMessage(chatID, messageText)

@@ -1,6 +1,7 @@
 package app
 
 import (
+	"fmt"
 	"log"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
@@ -13,14 +14,19 @@ func Run(configPath string) {
 	if err != nil {
 		log.Fatal(err)
 	}
+	if cfg.Debug {
+		fmt.Printf("%+v\n", cfg)
+	}
 
 	botApi, err := tgbotapi.NewBotAPI(cfg.TelegramToken)
 	if err != nil {
 		log.Fatal(err)
 	}
-	botApi.Debug = true
+	if cfg.Debug {
+		botApi.Debug = true
+	}
 
-	bot := telegram.NewBot(botApi, cfg.Messages)
+	bot := telegram.NewBot(botApi, cfg)
 
 	if err := bot.Start(); err != nil {
 		log.Fatal(err)

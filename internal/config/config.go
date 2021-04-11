@@ -1,7 +1,6 @@
 package config
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/spf13/viper"
@@ -13,8 +12,9 @@ type Messages struct {
 }
 
 type Responses struct {
-	Start string
-	Hello string
+	Start  string
+	Finish string
+	Hello  string
 }
 
 type Errors struct {
@@ -26,6 +26,8 @@ type Config struct {
 	TelegramToken string
 	Scripts       map[string]string
 	Messages      Messages
+	SudoChatId    int64
+	Debug         bool
 }
 
 // Init populates Config struct with values from config file
@@ -38,7 +40,6 @@ func Init(path string) (*Config, error) {
 	if err := unmarshal(&cfg); err != nil {
 		return nil, err
 	}
-	fmt.Println(cfg)
 
 	return &cfg, nil
 }
@@ -55,7 +56,6 @@ func parseConfigFile(filePath string) error {
 }
 
 func unmarshal(cfg *Config) error {
-	fmt.Println(viper.Get("telegramToken"))
 	if err := viper.Unmarshal(cfg); err != nil {
 		return err
 	}

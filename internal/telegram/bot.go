@@ -1,20 +1,24 @@
 package telegram
 
 import (
+	"fmt"
+	"os"
+	"os/signal"
+	"syscall"
+
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	"github.com/staszigzag/ScriptShellBot/internal/config"
 )
 
 type Bot struct {
-	bot      *tgbotapi.BotAPI
-	messages config.Messages
+	bot        *tgbotapi.BotAPI
+	messages   config.Messages
+	scripts    map[string]string
+	sudoChatId int64
 }
 
-func NewBot(bot *tgbotapi.BotAPI, messages config.Messages) *Bot {
-	return &Bot{
-		bot:      bot,
-		messages: messages,
-	}
+func NewBot(bot *tgbotapi.BotAPI, config *config.Config) *Bot {
+	return &Bot{bot: bot, messages: config.Messages, scripts: config.Scripts, sudoChatId: config.SudoChatId}
 }
 
 func (b *Bot) Start() error {
@@ -26,6 +30,23 @@ func (b *Bot) Start() error {
 		return err
 	}
 
+	if err := b.handleInfoBot(b.sudoChatId, start); err != nil {
+		// TODO
+		fmt.Println(err.Error())
+	}
+
+	go func() {
+		quit := make(chan os.Signal, 1)
+		signal.Notify(quit, syscall.SIGTERM, syscall.SIGINT)
+
+		<-quit
+		if err := b.handleInfoBot(b.sudoChatId, finish); err != nil {
+			// TODO
+			fmt.Println(err.Error())
+		}
+		os.Exit(0)
+	}()
+	fmt.Println("\nbot is running...")
 	for update := range updates {
 		if update.Message == nil { // ignore any non-Message Updates
 			continue

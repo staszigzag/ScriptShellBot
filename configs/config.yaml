@@ -1,0 +1,19 @@
+telegramToken2: <telegram token secret>
+
+sudoChatId2: <sudo chat id>
+
+scripts:
+  test: "echo 'test'"
+  test2: "shutdown -P 0"
+messages:
+  response:
+    start: "Бот запущен"
+    finish: "Бот остановлен"
+    hello: "Текущий чат ID: %s\n Список доступных команд:\n%s"
+
+  error:
+    unknownCommand: "Я не знаю такой команды :("
+    default: "Произошла неизвестная ошибка."
+
+debug: true
+
