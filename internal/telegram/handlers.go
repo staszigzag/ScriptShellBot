@@ -13,7 +13,7 @@ func (b *Bot) handleCommand(message *tgbotapi.Message) error {
 	case commandStart:
 		return b.handleStartCommand(message)
 	default:
-		return unknownCommand
+		return errUnknownCommand
 	}
 }
 
@@ -22,7 +22,6 @@ func (b *Bot) handleStartCommand(message *tgbotapi.Message) error {
 	_, err := b.bot.Send(msg)
 	return err
 }
-
 
 func (b *Bot) handleMessage(message *tgbotapi.Message) error {
 	msg := tgbotapi.NewMessage(message.Chat.ID, b.messages.Responses.Hello)

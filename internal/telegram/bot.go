@@ -6,14 +6,14 @@ import (
 )
 
 type Bot struct {
-	bot         *tgbotapi.BotAPI
+	bot      *tgbotapi.BotAPI
 	messages config.Messages
 }
 
 func NewBot(bot *tgbotapi.BotAPI, messages config.Messages) *Bot {
 	return &Bot{
-		bot:         bot,
-		messages:    messages,
+		bot:      bot,
+		messages: messages,
 	}
 }
 
