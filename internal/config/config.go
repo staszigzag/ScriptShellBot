@@ -14,7 +14,7 @@ type Messages struct {
 type Responses struct {
 	Start  string
 	Finish string
-	Hello  string
+	Help   string
 }
 
 type Errors struct {

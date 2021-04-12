@@ -1,96 +1,66 @@
 package telegram
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 	"strings"
-	"time"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
-	"github.com/staszigzag/ScriptShellBot/pkg/exec"
 )
 
 const (
 	commandCmd = "cmd"
+	//commandHelp = "help"
 )
 
-type typeInfo int
-
-const (
-	start typeInfo = iota
-	finish
-)
-
-func (b *Bot) handleInfoBot(chatId int64, typeInfo typeInfo) error {
-	if b.sudoChatId == 0 {
-		return errNotFoundSudoChatId
+// To all messages send info help
+func (b *Bot) handleMessage(message *tgbotapi.Message) error {
+	var commands string
+	// Exist commands text
+	for key := range b.scripts {
+		commands += fmt.Sprintf("- %s\n", key)
 	}
 
-	t := time.Now().Format("01.02.2006 15:04:05")
+	text := fmt.Sprintf(b.messages.Responses.Help, strconv.Itoa(int(message.Chat.ID)), commands)
 
-	var m string
-	switch typeInfo {
-	case start:
-		m = b.messages.Responses.Start
-	case finish:
-		m = b.messages.Responses.Finish
-	}
-
-	msg := tgbotapi.NewMessage(chatId, m+" "+t)
+	msg := tgbotapi.NewMessage(message.Chat.ID, text)
 	_, err := b.bot.Send(msg)
 	return err
 }
 
 func (b *Bot) handleCommand(message *tgbotapi.Message) error {
 	command := message.Command()
+	chatId := message.Chat.ID
+
 	switch command {
+	// Command for run live scripts
 	case commandCmd:
-		return b.handleCmdCommand(message)
+		// Get payload
+		script := strings.Replace(message.Text, fmt.Sprintf("/%s ", commandCmd), "", 1)
+		return b.executeCommand(chatId, script)
+	//case commandHelp:
+	//return b.handleHelpCommand(message)
 	default:
 		if script, ok := b.scripts[command]; ok {
-			answer, err := exec.Run(script)
-			if err != nil {
-				return err
-			}
-
-			msg := tgbotapi.NewMessage(message.Chat.ID, answer)
-			_, err = b.bot.Send(msg)
-			if err != nil {
-				return err
-			}
-			return nil
+			return b.executeCommand(chatId, script)
 		} else {
 			return errUnknownCommand
 		}
 	}
 }
 
-func (b *Bot) handleCmdCommand(message *tgbotapi.Message) error {
-	command := message.Text
-	cmd := strings.Replace(command, "/"+commandCmd+" ", "", 1)
-
-	answer, err := exec.Run(cmd)
+func (b *Bot) executeCommand(chatId int64, script string) error {
+	answer, err := b.exec.Run(context.Background(), script)
 	if err != nil {
 		return err
 	}
-	fmt.Println(answer)
-	msg := tgbotapi.NewMessage(message.Chat.ID, answer)
-	_, err = b.bot.Send(msg)
-	if err != nil {
+
+	b.logger.Debug(answer)
+
+	msg := tgbotapi.NewMessage(chatId, answer)
+	if _, err = b.bot.Send(msg); err != nil {
 		return err
 	}
 	return nil
-}
-
-func (b *Bot) handleMessage(message *tgbotapi.Message) error {
-	var scripts string
-	for key, _ := range b.scripts {
-		scripts += "- " + key + "\n"
-	}
-
-	text := fmt.Sprintf(b.messages.Responses.Hello, strconv.Itoa(int(message.Chat.ID)), scripts)
-
-	msg := tgbotapi.NewMessage(message.Chat.ID, text)
-	_, err := b.bot.Send(msg)
-	return err
 }

@@ -12,15 +12,20 @@ var (
 )
 
 func (b *Bot) handleError(chatID int64, err error) {
-	var messageText string
+	var errText string
 
 	switch err {
 	case errUnknownCommand:
-		messageText = b.messages.Errors.UnknownCommand
+		errText = b.messages.Errors.UnknownCommand
 	default:
-		messageText = b.messages.Errors.Default + " " + err.Error()
+		b.logger.Error(err)
+		errText = b.messages.Errors.Default + err.Error()
 	}
 
-	msg := tgbotapi.NewMessage(chatID, messageText)
-	b.bot.Send(msg)
+	msg := tgbotapi.NewMessage(chatID, errText)
+
+	_, e := b.bot.Send(msg)
+	if e != nil {
+		b.logger.Error(e)
+	}
 }

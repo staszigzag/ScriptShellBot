@@ -1,19 +1,20 @@
-telegramToken2: <telegram token secret>
+telegramToken: <telegram token secret>
 
-sudoChatId2: <sudo chat id>
+#sudo chat id for send info
+sudoChatId: 0
 
 scripts:
-  test: "echo 'test'"
+  test: "echo 'sega mega test'"
   test2: "shutdown -P 0"
+
 messages:
   response:
     start: "Бот запущен"
     finish: "Бот остановлен"
-    hello: "Текущий чат ID: %s\n Список доступных команд:\n%s"
-
+    help: "Текущий чат ID: %s\n Список доступных команд:\n%s"
   error:
     unknownCommand: "Я не знаю такой команды :("
-    default: "Произошла неизвестная ошибка."
+    default: "Произошла неизвестная ошибка. "
 
-debug: true
-
+#show debug log
+debug: false

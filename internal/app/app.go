@@ -2,31 +2,34 @@ package app
 
 import (
 	"fmt"
-	"log"
+
+	"github.com/staszigzag/ScriptShellBot/pkg/shell"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	"github.com/staszigzag/ScriptShellBot/internal/config"
 	"github.com/staszigzag/ScriptShellBot/internal/telegram"
+	"github.com/staszigzag/ScriptShellBot/pkg/logger"
 )
 
 func Run(configPath string) {
 	cfg, err := config.Init(configPath)
 	if err != nil {
-		log.Fatal(err)
+		logger.Fatal(err)
 	}
-	if cfg.Debug {
-		fmt.Printf("%+v\n", cfg)
-	}
+
+	log := logger.NewLogrus(cfg.Debug)
+	log.Debug(fmt.Sprintf("%+v\n", cfg))
 
 	botApi, err := tgbotapi.NewBotAPI(cfg.TelegramToken)
 	if err != nil {
 		log.Fatal(err)
 	}
-	if cfg.Debug {
-		botApi.Debug = true
-	}
+	botApi.Debug = cfg.Debug
 
-	bot := telegram.NewBot(botApi, cfg)
+	// Instruction exec
+	sh := shell.NewShell()
+
+	bot := telegram.NewBot(botApi, cfg, sh, log)
 
 	if err := bot.Start(); err != nil {
 		log.Fatal(err)
