@@ -1,9 +1,6 @@
 package telegram
 
 import (
-	"os"
-	"os/signal"
-	"syscall"
 	"time"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
@@ -13,22 +10,40 @@ import (
 )
 
 type Bot struct {
-	bot        *tgbotapi.BotAPI
-	messages   config.Messages
-	scripts    map[string]string
-	sudoChatId int64
-	exec       shell.Runner
-	logger     logger.Logger
+	token           string
+	bot             *tgbotapi.BotAPI
+	messages        *config.Messages
+	scripts         map[string]string
+	sudoChatId      int64
+	exec            shell.Runner
+	isDebug         bool
+	logger          logger.Logger
+	shutdownChannel chan struct{}
 }
 
-func NewBot(bot *tgbotapi.BotAPI, config *config.Config, exec shell.Runner, log logger.Logger) *Bot {
-	return &Bot{bot: bot, messages: config.Messages, scripts: config.Scripts, sudoChatId: config.SudoChatId, exec: exec, logger: log}
+func NewBot(config *config.Config, exec shell.Runner, log logger.Logger) *Bot {
+	return &Bot{
+		token:           config.TelegramToken,
+		messages:        &config.Messages,
+		scripts:         config.Scripts,
+		sudoChatId:      config.SudoChatId,
+		exec:            exec,
+		isDebug:         config.Debug,
+		logger:          log,
+		shutdownChannel: make(chan struct{}, 1),
+	}
 }
 
 func (b *Bot) Start() error {
+	botApi, err := tgbotapi.NewBotAPI(b.token)
+	if err != nil {
+		b.logger.Fatal(err)
+	}
+	botApi.Debug = b.isDebug
+	b.bot = botApi
+
 	u := tgbotapi.NewUpdate(0)
 	u.Timeout = 60
-
 	updates, err := b.bot.GetUpdatesChan(u)
 	if err != nil {
 		return err
@@ -37,40 +52,43 @@ func (b *Bot) Start() error {
 	// Send info start for sudo chat
 	b.sendInfoSudoChat(b.messages.Responses.Start)
 
-	// Graceful Shutdown
-	go func() {
-		quit := make(chan os.Signal, 1)
-		signal.Notify(quit, syscall.SIGTERM, syscall.SIGINT)
+	b.logger.Info("Bot is running...")
 
-		<-quit
-		// Send info finish for sudo chat
-		b.sendInfoSudoChat(b.messages.Responses.Finish)
+LOOP:
+	for {
+		select {
+		case update := <-updates:
+			// Ignore any non-Message Updates
+			if update.Message == nil {
+				continue
+			}
 
-		os.Exit(0)
-	}()
+			var err error
+			if update.Message.IsCommand() {
+				// Handle commands
+				err = b.handleCommand(update.Message)
+			} else {
+				// Handle regular messages
+				err = b.handleMessage(update.Message)
+			}
 
-	b.logger.Info("bot is running...")
+			if err != nil {
+				b.handleError(update.Message.Chat.ID, err)
+			}
+		// Shutdown bot
+		case <-b.shutdownChannel:
+			// Send info finish for sudo chat
+			b.sendInfoSudoChat(b.messages.Responses.Finish)
+			break LOOP
 
-	for update := range updates {
-		// Ignore any non-Message Updates
-		if update.Message == nil {
-			continue
-		}
-
-		var err error
-		if update.Message.IsCommand() {
-			// Handle commands
-			err = b.handleCommand(update.Message)
-		} else {
-			// Handle regular messages
-			err = b.handleMessage(update.Message)
-		}
-
-		if err != nil {
-			b.handleError(update.Message.Chat.ID, err)
 		}
 	}
+	b.logger.Info("Bot is stopped!")
 	return nil
+}
+
+func (b *Bot) Stop() {
+	b.shutdownChannel <- struct{}{}
 }
 
 func (b *Bot) sendInfoSudoChat(msg string) {
